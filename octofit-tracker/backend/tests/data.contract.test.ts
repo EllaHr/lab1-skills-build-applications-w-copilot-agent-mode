@@ -6,11 +6,17 @@ import { Activity, Team, User, Workout } from '../src/models/index.js';
 
 describe('OctoFit data contract', () => {
   it('requires meaningful user identity and goals', async () => {
-    const user = new User({});
-    const error = user.validateSync();
-    expect(error?.errors.name).toBeDefined();
-    expect(error?.errors.email).toBeDefined();
-    expect(error?.errors.fitnessGoal).toBeDefined();
+    const missing = new User({});
+    const missingError = missing.validateSync();
+    expect(missingError?.errors.name).toBeDefined();
+    expect(missingError?.errors.email).toBeDefined();
+    expect(missingError?.errors.fitnessGoal).toBeDefined();
+
+    const emptyStrings = new User({ name: '   ', email: '  ', fitnessGoal: '   ' });
+    const emptyStringError = emptyStrings.validateSync();
+    expect(emptyStringError?.errors.name).toBeDefined();
+    expect(emptyStringError?.errors.email).toBeDefined();
+    expect(emptyStringError?.errors.fitnessGoal).toBeDefined();
 
     const validUser = new User({ name: 'Mona', email: 'mona@example.com', fitnessGoal: 'endurance' });
     expect(validUser.validateSync()).toBeUndefined();
@@ -28,6 +34,9 @@ describe('OctoFit data contract', () => {
     const withMember = new Team({ name: 'Codecats', mascot: 'Copilot', members: [memberId.toString()] });
     expect(withMember.members.map((member) => member.toString())).toEqual([memberId.toString()]);
 
+    const invalidName = new Team({ name: '  ', mascot: 'Mona' });
+    expect(invalidName.validateSync()?.errors.name).toBeDefined();
+
     const missing = new Team({}).validateSync();
     expect(missing?.errors.name).toBeDefined();
     expect(missing?.errors.mascot).toBeDefined();
@@ -42,6 +51,18 @@ describe('OctoFit data contract', () => {
     expect(error?.errors.minutes).toBeDefined();
     expect(error?.errors.points).toBeDefined();
     expect(error?.errors.occurredAt).toBeDefined();
+
+    const invalidValues = new Activity({
+      user: new mongoose.Types.ObjectId(),
+      team: new mongoose.Types.ObjectId(),
+      type: 'run',
+      minutes: 0,
+      points: -5,
+      occurredAt: new Date('2026-01-10T12:00:00.000Z'),
+    });
+    const invalidValuesError = invalidValues.validateSync();
+    expect(invalidValuesError?.errors.minutes).toBeDefined();
+    expect(invalidValuesError?.errors.points).toBeDefined();
 
     const validActivity = new Activity({
       user: new mongoose.Types.ObjectId(),
@@ -60,6 +81,16 @@ describe('OctoFit data contract', () => {
     expect(error?.errors.focus).toBeDefined();
     expect(error?.errors.minutes).toBeDefined();
     expect(error?.errors.difficulty).toBeDefined();
+
+    const invalidWorkout = new Workout({
+      title: 'Intervals',
+      focus: 'endurance',
+      minutes: 0,
+      difficulty: '  ',
+    });
+    const invalidWorkoutError = invalidWorkout.validateSync();
+    expect(invalidWorkoutError?.errors.minutes).toBeDefined();
+    expect(invalidWorkoutError?.errors.difficulty).toBeDefined();
 
     const validWorkout = new Workout({
       title: 'Intervals',
